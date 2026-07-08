@@ -18,3 +18,4 @@ class RecommendationResponse(BaseModel):
     name: str
     overall_score: float
     category_scores: CategoryScores
+    explanation: str

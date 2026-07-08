@@ -1,5 +1,6 @@
 from app.data.mock_data import BUSINESS_TYPE_WEIGHTS, NEIGHBORHOOD_SCORES
 from app.scoring.engine import calculate_weighted_score
+from app.scoring.explanations import generate_explanation
 
 
 def get_recommendations_for_business_type(
@@ -20,6 +21,7 @@ def get_recommendations_for_business_type(
             "name": neighborhood["name"],
             "overall_score": overall_score,
             "category_scores": category_scores,
+            "explanation": generate_explanation(category_scores),
         }
 
         recommendations.append(recommendation)
