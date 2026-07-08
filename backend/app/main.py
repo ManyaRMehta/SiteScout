@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.routes.lookups import router as lookups_router
+from app.routes.recommendations import router as recommendations_router
 
 app = FastAPI(
     title="SiteScout API",
@@ -8,6 +9,7 @@ app = FastAPI(
 )
 
 app.include_router(lookups_router)
+app.include_router(recommendations_router)
 
 
 @app.get("/")
