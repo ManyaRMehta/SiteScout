@@ -1,5 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
+from app.db.session import get_db
 from app.schemas.recommendations import (
     CompareRequest,
     CompareResponse,
@@ -18,9 +20,13 @@ router = APIRouter(tags=["recommendations"])
 @router.post("/recommendations", response_model=list[RecommendationResponse])
 def get_recommendations(
     request: RecommendationRequest,
+    db: Session = Depends(get_db),
 ) -> list[dict[str, object]]:
     try:
-        return get_recommendations_for_business_type(request.business_type_id)
+        return get_recommendations_for_business_type(
+            db,
+            request.business_type_id,
+        )
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
 
@@ -28,9 +34,11 @@ def get_recommendations(
 @router.post("/compare", response_model=CompareResponse)
 def compare(
     request: CompareRequest,
+    db: Session = Depends(get_db),
 ) -> dict[str, object]:
     try:
         return compare_neighborhoods(
+            db,
             request.business_type,
             request.neighborhood_a,
             request.neighborhood_b,
@@ -42,9 +50,11 @@ def compare(
 @router.post("/what-if", response_model=WhatIfResponse)
 def what_if(
     request: WhatIfRequest,
+    db: Session = Depends(get_db),
 ) -> dict[str, object]:
     try:
         return get_what_if_recommendations(
+            db,
             request.business_type_id,
             request.custom_weights.dict(),
         )

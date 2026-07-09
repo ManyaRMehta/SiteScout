@@ -1,11 +1,11 @@
 from pydantic import BaseModel
 
 
-class BusinessType(BaseModel):
+class BusinessTypeResponse(BaseModel):
     id: str
     name: str
 
 
-class Neighborhood(BaseModel):
+class NeighborhoodResponse(BaseModel):
     id: str
     name: str

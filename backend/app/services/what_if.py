@@ -1,4 +1,6 @@
-from app.data.mock_data import BUSINESS_TYPE_WEIGHTS, NEIGHBORHOOD_SCORES
+from sqlalchemy.orm import Session
+
+from app.db.models import BusinessType, Neighborhood
 from app.scoring.engine import REQUIRED_CATEGORIES
 from app.services.recommendations import (
     build_neighborhood_result,
@@ -33,23 +35,31 @@ def _get_highest_weight_category(custom_weights: dict[str, float]) -> str:
 
 
 def get_what_if_recommendations(
+    db: Session,
     business_type_id: str,
     custom_weights: dict[str, float],
 ) -> dict[str, object]:
-    if business_type_id not in BUSINESS_TYPE_WEIGHTS:
+    business_type = db.get(BusinessType, business_type_id)
+
+    if business_type is None:
         raise ValueError(f"Unsupported business type: {business_type_id}")
 
     _validate_custom_weights(custom_weights)
 
-    default_recommendations = get_recommendations_for_business_type(business_type_id)
+    default_recommendations = get_recommendations_for_business_type(
+        db,
+        business_type_id,
+    )
     previous_rank_by_id = {
         recommendation["id"]: rank
         for rank, recommendation in enumerate(default_recommendations, start=1)
     }
 
+    neighborhoods = db.query(Neighborhood).all()
+
     custom_recommendations = [
         build_neighborhood_result(neighborhood, custom_weights)
-        for neighborhood in NEIGHBORHOOD_SCORES
+        for neighborhood in neighborhoods
     ]
 
     ranked_custom_recommendations = sorted(

@@ -1,41 +1,74 @@
-from app.data.mock_data import BUSINESS_TYPE_WEIGHTS, NEIGHBORHOOD_SCORES
-from app.services.recommendations import build_neighborhood_result
+from sqlalchemy import or_
+from sqlalchemy.orm import Session
+
+from app.db.models import BusinessType, Neighborhood
+from app.services.recommendations import (
+    _business_type_to_weights,
+    build_neighborhood_result,
+)
 
 
-def _find_neighborhood(name: str) -> dict[str, object]:
-    normalized_name = name.strip().lower()
-    for neighborhood in NEIGHBORHOOD_SCORES:
-        if neighborhood["name"].lower() == normalized_name:
-            return neighborhood
-    raise ValueError(f"Unsupported neighborhood: {name}")
+def _find_neighborhood(
+    db: Session,
+    neighborhood_identifier: str,
+) -> Neighborhood:
+    normalized_identifier = neighborhood_identifier.strip().lower()
+
+    neighborhood = (
+        db.query(Neighborhood)
+        .filter(
+            or_(
+                Neighborhood.id == normalized_identifier,
+                Neighborhood.name.ilike(neighborhood_identifier.strip()),
+            )
+        )
+        .first()
+    )
+
+    if neighborhood is None:
+        raise ValueError(f"Unsupported neighborhood: {neighborhood_identifier}")
+
+    return neighborhood
 
 
 def compare_neighborhoods(
-    business_type: str,
+    db: Session,
+    business_type_id: str,
     neighborhood_a: str,
     neighborhood_b: str,
 ) -> dict[str, object]:
-    if business_type not in BUSINESS_TYPE_WEIGHTS:
-        raise ValueError(f"Unsupported business type: {business_type}")
+    business_type = db.get(BusinessType, business_type_id)
 
-    weights = BUSINESS_TYPE_WEIGHTS[business_type]
-    result_a = build_neighborhood_result(_find_neighborhood(neighborhood_a), weights)
-    result_b = build_neighborhood_result(_find_neighborhood(neighborhood_b), weights)
+    if business_type is None:
+        raise ValueError(f"Unsupported business type: {business_type_id}")
+
+    weights = _business_type_to_weights(business_type)
+
+    result_a = build_neighborhood_result(
+        _find_neighborhood(db, neighborhood_a),
+        weights,
+    )
+    result_b = build_neighborhood_result(
+        _find_neighborhood(db, neighborhood_b),
+        weights,
+    )
 
     score_a = result_a["overall_score"]
     score_b = result_b["overall_score"]
+
+    readable_business_type = business_type_id.replace("_", " ")
 
     if score_a > score_b:
         winner = result_a["name"]
         summary = (
             f"{result_a['name']} scores higher overall ({score_a} vs {score_b}) "
-            f"for {business_type.replace('_', ' ')}."
+            f"for {readable_business_type}."
         )
     elif score_b > score_a:
         winner = result_b["name"]
         summary = (
             f"{result_b['name']} scores higher overall ({score_b} vs {score_a}) "
-            f"for {business_type.replace('_', ' ')}."
+            f"for {readable_business_type}."
         )
     else:
         winner = "tie"
@@ -45,7 +78,7 @@ def compare_neighborhoods(
         )
 
     return {
-        "business_type": business_type,
+        "business_type": business_type_id,
         "neighborhood_a": result_a,
         "neighborhood_b": result_b,
         "winner": winner,
