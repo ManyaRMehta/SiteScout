@@ -41,3 +41,26 @@ class CompareResponse(BaseModel):
     neighborhood_b: ComparedNeighborhood
     winner: str
     summary: str
+
+
+class WhatIfRequest(BaseModel):
+    business_type_id: str
+    custom_weights: CategoryScores
+
+
+class WhatIfRecommendationResponse(BaseModel):
+    id: str
+    name: str
+    previous_rank: int
+    new_rank: int
+    rank_change: int
+    overall_score: float
+    category_scores: CategoryScores
+    explanation: str
+
+
+class WhatIfResponse(BaseModel):
+    business_type_id: str
+    custom_weights: CategoryScores
+    recommendations: list[WhatIfRecommendationResponse]
+    summary: str
